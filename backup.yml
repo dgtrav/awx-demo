@@ -1,0 +1,29 @@
+- name: Backup Aruba CX Switch Configuration
+  hosts: all
+  gather_facts: no
+  collections:
+    - arubanetworks.aoscx
+  
+  tasks:
+    - name: Get running configuration
+      aoscx_command:
+        commands:
+          - show running-config
+      register: running_config
+    
+    - name: Create backup directory
+      file:
+        path: "/var/lib/awx/projects/backups"
+        state: directory
+      delegate_to: localhost
+      run_once: true
+    
+    - name: Save configuration to file
+      copy:
+        content: "{{ running_config.stdout[0] }}"
+        dest: "/var/lib/awx/projects/backups/{{ inventory_hostname }}-{{ ansible_date_time.date }}-config.txt"
+      delegate_to: localhost
+    
+    - name: Display backup location
+      debug:
+        msg: "Configuration backed up to /var/lib/awx/projects/backups/{{ inventory_hostname }}-{{ ansible_date_time.date }}-config.txt"
