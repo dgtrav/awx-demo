@@ -12,13 +12,6 @@
           - show running-config
       register: running_config
     
-    - name: Create backup directory in projects
-      file:
-        path: "/var/lib/awx/projects/switch-backups"
-        state: directory
-      delegate_to: localhost
-      run_once: true
-    
     - name: Save configuration to file
       copy:
         content: "{{ running_config.stdout[0] }}"
