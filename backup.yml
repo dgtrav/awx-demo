@@ -12,12 +12,15 @@
           - show running-config
       register: running_config
     
-    - name: Save configuration to file
+    - name: Save configuration to host
       copy:
         content: "{{ running_config.stdout[0] }}"
         dest: "/var/lib/awx/projects/switch-backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
-      delegate_to: localhost
+      delegate_to: "tra-awx"  # Your Kubernetes host
+      vars:
+        ansible_ssh_user: traversa
+        ansible_ssh_pass: "{{ host_password }}"
     
     - name: Display backup location
       debug:
-        msg: "Configuration saved to /var/lib/awx/projects/switch-backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        msg: "Configuration saved to tra-awx:/var/lib/awx/projects/switch-backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
