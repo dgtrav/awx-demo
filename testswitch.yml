@@ -1,0 +1,13 @@
+---
+- hosts: aruba_switches
+  collections:
+    - arubanetworks.aos_switch
+  tasks:
+    - name: Show version
+      arubaoss_command:
+        commands: ['show version']
+      register: version_output
+    
+    - name: Display version
+      debug:
+        var: version_output
