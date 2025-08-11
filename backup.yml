@@ -12,12 +12,12 @@
           - show running-config
       register: running_config
     
-    - name: Save configuration to AWX execution environment
+    - name: Save configuration to persistent location
       copy:
         content: "{{ running_config.stdout[0] }}"
-        dest: "/runner/project/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        dest: "/var/lib/awx/projects/_13__network_automation_playbooks/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
       delegate_to: localhost
     
     - name: Display file location
       debug:
-        msg: "Configuration saved to /runner/project/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        msg: "Configuration saved to /var/lib/awx/projects/_13__network_automation_playbooks/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
