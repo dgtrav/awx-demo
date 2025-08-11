@@ -1,23 +1,53 @@
 ---
-- name: Backup Aruba CX Switch Configuration
+- name: Debug and Backup Aruba CX Switch Configuration
   hosts: foobar-switch
   gather_facts: yes
   collections:
     - arubanetworks.aoscx
   
   tasks:
+    - name: Debug - Check execution environment
+      debug:
+        msg: 
+          - "Current working directory: {{ ansible_env.PWD | default('unknown') }}"
+          - "User: {{ ansible_env.USER | default('unknown') }}"
+          - "Home: {{ ansible_env.HOME | default('unknown') }}"
+      delegate_to: localhost
+    
+    - name: Debug - Check filesystem from execution environment
+      shell: |
+        echo "=== Current directory ==="
+        pwd
+        echo "=== User and groups ==="
+        id
+        echo "=== /var/lib/awx/projects exists? ==="
+        ls -la /var/lib/awx/projects/ || echo "Directory not accessible"
+        echo "=== /tmp writable? ==="
+        touch /tmp/test-write && echo "Yes" && rm /tmp/test-write || echo "No"
+        echo "=== Mount points ==="
+        mount | grep -E "(awx|projects)" || echo "No awx mounts visible"
+      register: debug_output
+      delegate_to: localhost
+    
+    - name: Display debug output
+      debug:
+        var: debug_output.stdout_lines
+      delegate_to: localhost
+    
     - name: Get running configuration
       aoscx_command:
         commands:
           - show running-config
       register: running_config
     
-    - name: Save configuration to persistent location
+    - name: Try saving to /tmp first (guaranteed to work)
       copy:
         content: "{{ running_config.stdout[0] }}"
-        dest: "/var/lib/awx/projects/_13__network_automation_playbooks/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        dest: "/tmp/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
       delegate_to: localhost
+      register: tmp_save_result
     
-    - name: Display file location
+    - name: Display tmp save result
       debug:
-        msg: "Configuration saved to /var/lib/awx/projects/_13__network_automation_playbooks/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        msg: "Saved to /tmp successfully: {{ tmp_save_result.changed }}"
+      delegate_to: localhost
