@@ -1,6 +1,6 @@
 ---
 - name: Backup Aruba CX Switch Configuration
-  hosts: all
+  hosts: foobar-switch
   gather_facts: yes
   collections:
     - arubanetworks.aoscx
@@ -16,8 +16,8 @@
       copy:
         content: "{{ running_config.stdout[0] }}"
         dest: "/var/lib/awx/projects/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
-      delegate_to: localhost
+      # NO delegate_to - run this on the target host's execution environment
     
     - name: Display file location
       debug:
-        msg: "Configuration saved - check /var/lib/awx/projects/ on your host"
+        msg: "Configuration saved to /var/lib/awx/projects/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
