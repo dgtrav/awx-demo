@@ -17,3 +17,7 @@
         content: "{{ running_config.stdout[0] }}"
         dest: "/tmp/backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
       delegate_to: localhost
+    
+    - name: Display success message
+      debug:
+        msg: "Configuration saved to /home/traversa/awx-backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt on host"
