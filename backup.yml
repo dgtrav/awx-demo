@@ -12,24 +12,8 @@
           - show running-config
       register: running_config
     
-    - name: Save configuration to execution environment tmp
+    - name: Save configuration to mounted backup directory
       copy:
         content: "{{ running_config.stdout[0] }}"
-        dest: "/tmp/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
+        dest: "/tmp/backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
       delegate_to: localhost
-      register: tmp_backup
-    
-    - name: Copy file to mounted projects directory (via task pod)
-      copy:
-        src: "/tmp/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
-        dest: "/var/lib/awx/projects/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
-        remote_src: yes
-      delegate_to: "127.0.0.1"  # Try to target the task pod instead of execution environment
-      vars:
-        ansible_connection: local
-    
-    - name: Display backup locations
-      debug:
-        msg: 
-          - "Config saved to execution environment: /tmp/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
-          - "Config copied to projects: /var/lib/awx/projects/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt"
