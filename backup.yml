@@ -12,6 +12,12 @@
           - show running-config
       register: running_config
     
+    - name: Create backup directory
+      file:
+        path: "/tmp/backups"
+        state: directory
+      delegate_to: localhost
+    
     - name: Save configuration to mounted backup directory
       copy:
         content: "{{ running_config.stdout[0] }}"
