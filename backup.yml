@@ -46,3 +46,18 @@
     - name: Show debug info
       debug:
         var: debug_info.stdout_lines
+
+    - name: Check available mounts in execution environment
+      shell: |
+        echo "=== All mount points ==="
+        mount
+        echo "=== /host directory contents ==="
+        ls -la /host/ 2>/dev/null || echo "/host not accessible"
+        echo "=== Root directory contents ==="
+        ls -la /
+      register: mount_debug
+      delegate_to: localhost
+
+    - name: Show mount debug
+      debug:
+        var: mount_debug.stdout_lines
