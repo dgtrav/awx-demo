@@ -29,20 +29,20 @@
         msg: "Configuration saved to /home/traversa/awx-backups/{{ inventory_hostname }}-{{ ansible_date_time.iso8601 }}-config.txt on host"
 
     - name: Debug execution environment details
-  shell: |
-    echo "=== Hostname ==="
-    hostname
-    echo "=== Current directory ==="
-    pwd
-    echo "=== Mount points ==="
-    mount | grep backup || echo "No backup mounts"
-    echo "=== /tmp contents ==="
-    ls -la /tmp/
-    echo "=== Process list ==="
-    ps aux | head -5
-  register: debug_info
-  delegate_to: localhost
+      shell: |
+        echo "=== Hostname ==="
+        hostname
+        echo "=== Current directory ==="
+        pwd
+        echo "=== Mount points ==="
+        mount | grep backup || echo "No backup mounts"
+        echo "=== /tmp contents ==="
+        ls -la /tmp/
+        echo "=== Process list ==="
+        ps aux | head -5
+      register: debug_info
+      delegate_to: localhost
 
-- name: Show debug info
-  debug:
-    var: debug_info.stdout_lines
+    - name: Show debug info
+      debug:
+        var: debug_info.stdout_lines
