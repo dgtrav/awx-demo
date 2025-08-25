@@ -1,0 +1,137 @@
+---
+- name: Aruba CX Firmware Update Playbook
+  hosts: "{{ target_hosts | default('aruba_switches') }}"
+  gather_facts: no
+  connection: network_cli
+  vars:
+    # Firmware configuration variables - can be overridden at runtime
+    tftp_server: "{{ tftp_server | default('192.10.12.0') }}"
+    firmware_filename: "{{ firmware_filename | default('ss.10.a0.0001.swi') }}"
+    firmware_url: "tftp://{{ tftp_server }}/{{ firmware_filename }}"
+    ansible_network_os: arubaoss  # or appropriate network OS for CX switches
+    ansible_connection: network_cli
+    # Pre-update checks
+    backup_config: "{{ backup_config | default(true) | bool }}"
+    reboot_timeout: "{{ reboot_timeout | default(900) | int }}"  # 15 minutes timeout for reboot
+    
+  tasks:
+    - name: Backup current configuration (optional)
+      arubaoss_config:
+        backup: yes
+        backup_options:
+          filename: "{{ inventory_hostname }}_pre_firmware_backup_{{ ansible_date_time.epoch }}.cfg"
+      when: backup_config | bool
+      tags: backup
+
+    - name: Check current firmware version
+      arubaoss_command:
+        commands:
+          - show version
+      register: current_version
+      tags: pre_check
+
+    - name: Display current firmware version
+      debug:
+        var: current_version.stdout[0]
+      tags: pre_check
+
+    - name: Check available flash space
+      arubaoss_command:
+        commands:
+          - show flash
+      register: flash_info
+      tags: pre_check
+
+    - name: Display flash information
+      debug:
+        var: flash_info.stdout[0]
+      tags: pre_check
+
+    - name: Copy firmware to primary partition
+      arubaoss_command:
+        commands:
+          - "copy {{ firmware_url }} primary"
+        wait_for:
+          - result[0] contains "100.0%"
+        timeout: 1800  # 30 minutes timeout for firmware download
+      register: firmware_copy_result
+      tags: firmware_update
+
+    - name: Display firmware copy results
+      debug:
+        var: firmware_copy_result
+      tags: firmware_update
+
+    - name: Save configuration before reboot
+      arubaoss_command:
+        commands:
+          - write memory
+      tags: save_config
+
+    - name: Reboot switch to load new firmware
+      arubaoss_command:
+        commands:
+          - boot system primary
+        timeout: 30
+      ignore_errors: yes
+      tags: reboot
+
+    - name: Wait for switch to come back online
+      wait_for_connection:
+        connect_timeout: 20
+        sleep: 5
+        delay: 60
+        timeout: "{{ reboot_timeout }}"
+      tags: reboot
+
+    - name: Verify new firmware version after reboot
+      arubaoss_command:
+        commands:
+          - show version
+      register: new_version
+      tags: post_check
+
+    - name: Display new firmware version
+      debug:
+        var: new_version.stdout[0]
+      tags: post_check
+
+    - name: Copy primary to secondary partition
+      arubaoss_command:
+        commands:
+          - "copy primary secondary"
+        wait_for:
+          - result[0] contains "Verifying and writing system firmware"
+        timeout: 900  # 15 minutes timeout for secondary copy
+      register: secondary_copy_result
+      tags: secondary_update
+
+    - name: Display secondary copy results
+      debug:
+        var: secondary_copy_result
+      tags: secondary_update
+
+    - name: Verify both partitions have same firmware
+      arubaoss_command:
+        commands:
+          - show flash
+      register: final_flash_info
+      tags: final_check
+
+    - name: Display final flash information
+      debug:
+        var: final_flash_info.stdout[0]
+      tags: final_check
+
+    - name: Final configuration save
+      arubaoss_command:
+        commands:
+          - write memory
+      tags: save_config
+
+  handlers:
+    - name: Emergency configuration restore
+      arubaoss_config:
+        src: "{{ inventory_hostname }}_pre_firmware_backup_{{ ansible_date_time.epoch }}.cfg"
+      listen: "restore config"
+      when: backup_config | bool
